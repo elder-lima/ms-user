@@ -9,6 +9,8 @@ import dev.elder.ms_user.domain.user.dto.LoginResponse;
 import dev.elder.ms_user.domain.user.exception.UserConflicException;
 import dev.elder.ms_user.domain.user.exception.UserNotFoundException;
 import dev.elder.ms_user.domain.user.mapper.UserMapper;
+import dev.elder.ms_user.producer.UserCreatedProducer;
+import dev.elder.ms_user.producer.dto.UserCreatedEvent;
 import dev.elder.ms_user.repository.UserRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -28,13 +30,15 @@ public class UserService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtEncoder jwtEncoder;
     private final UserMapper userMapper;
+    private final UserCreatedProducer producer;
 
-    public UserService(UserRepository userRepository, RoleService roleService, BCryptPasswordEncoder passwordEncoder, JwtEncoder jwtEncoder, UserMapper userMapper) {
+    public UserService(UserRepository userRepository, RoleService roleService, BCryptPasswordEncoder passwordEncoder, JwtEncoder jwtEncoder, UserMapper userMapper, UserCreatedProducer producer) {
         this.userRepository = userRepository;
         this.roleService = roleService;
         this.passwordEncoder = passwordEncoder;
         this.jwtEncoder = jwtEncoder;
         this.userMapper = userMapper;
+        this.producer = producer;
     }
 
     @Transactional
@@ -45,6 +49,16 @@ public class UserService {
 
         User user = userMapper.toEntity(dto);
         userRepository.save(user);
+
+        producer.publish(
+                "user.created",
+                new UserCreatedEvent(
+                        user.getUserId(),
+                        user.getEmail(),
+                        "Cadastro Realizado com sucesso!",
+                        "Seja bem vindo(a)! \nAgradecemos o seu cadastro, aproveite agora todos os recursos da nossa plataforma!"
+                )
+        );
 
     }
 
@@ -76,6 +90,16 @@ public class UserService {
                 .build();
 
         var jwtValue = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+
+        producer.publish(
+                "user.logged",
+                new UserCreatedEvent(
+                        user.getUserId(),
+                        user.getEmail(),
+                        "Novo Login Realizado com sucesso!",
+                        "Login Realizado em: "+ now +"."+" \nEm nossa plataforma."
+                )
+        );
 
         return new LoginResponse(jwtValue, expiresIn);
     }
