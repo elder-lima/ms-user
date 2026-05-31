@@ -4,8 +4,6 @@ import java.util.UUID;
 
 public record UserCreatedEvent(
         UUID userId,
-        String email,
-        String subject,
-        String text
+        String email
 ) {
 }
