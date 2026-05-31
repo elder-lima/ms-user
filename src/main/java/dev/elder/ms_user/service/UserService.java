@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -47,16 +48,15 @@ public class UserService {
         verificarEmail(dto.email());
         Roles role = roleService.findByNome(RoleName.BASIC);
 
-        User user = userMapper.toEntity(dto);
+        User user = userMapper.toEntity(dto, passwordEncoder);
+        user.addRoles(Set.of(role));
         userRepository.save(user);
 
         producer.publish(
                 "user.created",
                 new UserCreatedEvent(
                         user.getUserId(),
-                        user.getEmail(),
-                        "Cadastro Realizado com sucesso!",
-                        "Seja bem vindo(a)! \nAgradecemos o seu cadastro, aproveite agora todos os recursos da nossa plataforma!"
+                        user.getEmail()
                 )
         );
 
@@ -95,9 +95,7 @@ public class UserService {
                 "user.logged",
                 new UserCreatedEvent(
                         user.getUserId(),
-                        user.getEmail(),
-                        "Novo Login Realizado com sucesso!",
-                        "Login Realizado em: "+ now +"."+" \nEm nossa plataforma."
+                        user.getEmail()
                 )
         );
 
