@@ -7,7 +7,7 @@ import dev.elder.ms_user.domain.user.dto.CreateUser;
 import dev.elder.ms_user.domain.user.dto.LoginRequest;
 import dev.elder.ms_user.domain.user.dto.LoginResponse;
 import dev.elder.ms_user.domain.user.exception.UserConflicException;
-import dev.elder.ms_user.domain.user.exception.UserNotFoundException;
+import dev.elder.ms_user.domain.user.exception.BadCredentialsException;
 import dev.elder.ms_user.domain.user.mapper.UserMapper;
 import dev.elder.ms_user.producer.UserCreatedProducer;
 import dev.elder.ms_user.producer.dto.UserCreatedEvent;
@@ -70,10 +70,10 @@ public class UserService {
 
     public LoginResponse login(LoginRequest loginRequest) {
 
-        User user = userRepository.findByEmail(loginRequest.email()).orElseThrow(() -> new UserNotFoundException("Email ou Senha Inválidos!"));
+        User user = userRepository.findByEmail(loginRequest.email()).orElseThrow(() -> new BadCredentialsException("Email ou Senha Inválidos!"));
 
         if (!user.loginEstaCorreto(loginRequest, passwordEncoder)) {
-            throw new UserNotFoundException("Email ou Senha Inválidos!");
+            throw new BadCredentialsException("Email ou Senha Inválidos!");
         }
 
         var now = Instant.now();
