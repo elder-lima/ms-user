@@ -6,8 +6,11 @@ import dev.elder.ms_user.domain.user.User;
 import dev.elder.ms_user.domain.user.dto.CreateUser;
 import dev.elder.ms_user.domain.user.dto.LoginRequest;
 import dev.elder.ms_user.domain.user.dto.LoginResponse;
+import dev.elder.ms_user.domain.user.dto.UserResponse;
+import dev.elder.ms_user.domain.user.exception.AccessDeniedException;
 import dev.elder.ms_user.domain.user.exception.UserConflicException;
 import dev.elder.ms_user.domain.user.exception.BadCredentialsException;
+import dev.elder.ms_user.domain.user.exception.UserNotFoundException;
 import dev.elder.ms_user.domain.user.mapper.UserMapper;
 import dev.elder.ms_user.producer.UserCreatedProducer;
 import dev.elder.ms_user.producer.dto.UserCreatedEvent;
@@ -16,11 +19,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -68,6 +73,20 @@ public class UserService {
         }
     }
 
+    public UserResponse findById(UUID id) {
+        User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User não Encontrado. Id:" + id));
+        return userMapper.toDto(user);
+    }
+
+    public UserResponse me(UUID userId, JwtAuthenticationToken token) {
+        UUID userIdToken = UUID.fromString(token.getName());
+        if (!userId.equals(userIdToken)) {
+            throw new AccessDeniedException("Acesso negado.");
+        }
+        User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User não Encontrado. Id:"+userId));
+        return userMapper.toDto(user);
+    }
+
     public LoginResponse login(LoginRequest loginRequest) {
 
         User user = userRepository.findByEmail(loginRequest.email()).orElseThrow(() -> new BadCredentialsException("Email ou Senha Inválidos!"));
@@ -77,7 +96,7 @@ public class UserService {
         }
 
         var now = Instant.now();
-        var expiresIn = 300L;
+        var expiresIn = 1000L;
 
         var scopes = user.getRoles().stream().map(role -> role.getNome().name()).collect(Collectors.joining(" "));
 

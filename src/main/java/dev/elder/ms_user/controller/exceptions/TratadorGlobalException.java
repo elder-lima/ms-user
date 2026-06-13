@@ -1,8 +1,10 @@
 package dev.elder.ms_user.controller.exceptions;
 
 import dev.elder.ms_user.domain.roles.exceptions.RoleExceptionNotFound;
+import dev.elder.ms_user.domain.user.exception.AccessDeniedException;
 import dev.elder.ms_user.domain.user.exception.UserConflicException;
 import dev.elder.ms_user.domain.user.exception.BadCredentialsException;
+import dev.elder.ms_user.domain.user.exception.UserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,12 +20,40 @@ import java.util.List;
 public class TratadorGlobalException {
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ErroApi> userNotFoundException(BadCredentialsException ex, HttpServletRequest request) {
+    public ResponseEntity<ErroApi> badCredentialsException(BadCredentialsException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                new ErroApi(
+                        Instant.now(),
+                        401,
+                        "Credenciais Inválidas",
+                        ex.getMessage(),
+                        request.getRequestURI(),
+                        List.of()
+                )
+        );
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErroApi> accessDeniedException(AccessDeniedException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                new ErroApi(
+                        Instant.now(),
+                        401,
+                        "Acesso Negado.",
+                        ex.getMessage(),
+                        request.getRequestURI(),
+                        List.of()
+                )
+        );
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErroApi> userNotFoundException(UserNotFoundException ex, HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                 new ErroApi(
                         Instant.now(),
                         404,
-                        "Credenciais Inválidas",
+                        "User não Encontrado",
                         ex.getMessage(),
                         request.getRequestURI(),
                         List.of()
